@@ -22,6 +22,7 @@ public class AuctionItem implements Serializable {
     private String name;                    // Nome do item leiloado.
     private String description;             // Descrição detalhada do item.
     private double currentBid;              // O valor do lance mais alto atual.
+    private double startBid;                // O valor do lance inicial.
     private String highestBidderId;         // ID do cliente que deu o lance mais alto.
     private String highestBidderUsername;   // Nome de usuário do cliente que deu o lance mais alto.
     private long endTimeMillis;             // Carimbo de data/hora em milissegundos para o fim do leilão.
@@ -45,6 +46,7 @@ public class AuctionItem implements Serializable {
         this.name = name;
         this.description = description;
         this.currentBid = startBid;
+        this.startBid = startBid;
         this.highestBidderId = null;
         this.highestBidderUsername = null;
         this.endTimeMillis = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(durationSeconds);
@@ -57,6 +59,7 @@ public class AuctionItem implements Serializable {
     public String getName() { return name; }
     public String getDescription() { return description; }
     public double getCurrentBid() { return currentBid; }
+    public double getStartBid() { return startBid; }
     public String getHighestBidderId() { return highestBidderId; }
     public String getHighestBidderUsername() { return highestBidderUsername; }
     public long getEndTimeMillis() { return endTimeMillis; }

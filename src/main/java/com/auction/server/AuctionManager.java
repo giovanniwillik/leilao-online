@@ -127,13 +127,23 @@ public class AuctionManager {
         for (AuctionItem auction : activeAuctions.values()) {
             if (auction.getStatus() == AuctionItem.Status.ACTIVE && auction.isEnded()) {
                 auction.setStatus(AuctionItem.Status.ENDED);
-                System.out.println("Leilão ENCERRADO: " + auction.getName() + " (ID: " + auction.getId() + ")");
-                System.out.println("Vencedor: " + (auction.getHighestBidderUsername() != null ? auction.getHighestBidderUsername() : "N/A") +
-                                   " com lance de " + auction.getCurrentBid());
+                
+                String statusMessage;
+                // Verifica se houve algum lance válido (ou seja, se o highestBidderUsername foi definido)
+                if (auction.getHighestBidderUsername() != null) {
+                    statusMessage = "Vencedor: " + auction.getHighestBidderUsername() +
+                                    " com lance de " + String.format("%.2f", auction.getCurrentBid());
+                    System.out.println("Leilão ENCERRADO: " + auction.getName() + " (ID: " + auction.getId() + ")");
+                    System.out.println(statusMessage);
+                } else {
+                    // Ninguém deu um lance após o lance inicial
+                    statusMessage = "Item não foi vendido (sem lances). Lance inicial: " + String.format("%.2f", auction.getStartBid());
+                    System.out.println("Leilão ENCERRADO: " + auction.getName() + " (ID: " + auction.getId() + ")");
+                    System.out.println(statusMessage);
+                }
+                
                 // Notifica todos os clientes que o leilão terminou
-                server.broadcast(new AuctionUpdateMessage("server", auction, "Leilão encerrado! " + auction.getName() + " (ID: " + auction.getId() + "). Vencedor: " +
-                        (auction.getHighestBidderUsername() != null ? auction.getHighestBidderUsername() : "N/A") +
-                        " com lance de " + auction.getCurrentBid()));
+                server.broadcast(new AuctionUpdateMessage("server", auction, "Leilão encerrado! " + auction.getName() + " (ID: " + auction.getId() + "). " + statusMessage));
             }
         }
     }
