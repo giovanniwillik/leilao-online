@@ -28,4 +28,18 @@ public class Constants {
      * cujo tempo se esgotou e notificar os clientes.
      */
     public static final long AUCTION_END_CHECK_INTERVAL_MS = 1000; // 1 segundo
+
+    /**
+     * Tempo máximo de inatividade permitido para um cliente antes de ser desconectado.
+     * Se o servidor não receber nenhuma mensagem (incluindo Keep-Alive) de um cliente
+     * dentro deste período, ele considerará o cliente desconectado e fechará a conexão.
+     */
+    public static final long CLIENT_INACTIVITY_TIMEOUT_MS = 60000; // 60 segundos
+
+    /**
+     * Intervalo em milissegundos para o servidor verificar a inatividade dos clientes.
+     * O servidor executará esta verificação periodicamente para identificar clientes
+     * que não enviaram mensagens dentro do tempo permitido e desconectá-los.
+     */
+    public static final long CLIENT_INACTIVITY_CHECK_INTERVAL_MS = 20000; // 20 segundos
 }
