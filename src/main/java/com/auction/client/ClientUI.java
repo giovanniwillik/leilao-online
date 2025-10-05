@@ -5,10 +5,10 @@ import com.auction.common.UserInfo;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
@@ -20,6 +20,7 @@ public class ClientUI {
     private Scanner scanner;
     private boolean loggedIn = false;
     private ScheduledExecutorService uiScheduler; // Para agendar atualizações periódicas da UI
+    private List<AuctionItem> recentlyDiscontinuedAuctions = new ArrayList<>();
 
     /**
      * Construtor para ClientUI.
@@ -36,8 +37,8 @@ public class ClientUI {
      * Inicia o loop principal da interface de usuário, aguardando comandos do usuário.
      */
     public void start() {
-        // Agendar uma atualização periódica da UI para exibir leilões e usuários online
-        uiScheduler.scheduleAtFixedRate(this::refreshUI, 0, 5, TimeUnit.SECONDS);
+        // // Agendar uma atualização periódica da UI para exibir leilões e usuários online
+        // uiScheduler.scheduleAtFixedRate(this::refreshUI, 0, 5, TimeUnit.SECONDS);
 
         displayLoginPrompt();
         String input;
@@ -68,6 +69,15 @@ public class ClientUI {
         System.out.println("Bem-vindo ao Sistema de Leilões! \n");
         System.out.println("Para fazer login, digite: login <seu_nome_de_usuario>");
         System.out.println("Exemplo: login JoaoSilva");
+        System.out.println("---------------------------------------------------");
+        System.out.println("Após o login, você pode usar os seguintes comandos:");
+        System.out.println("lsauctions                  - Lista todos os leilões ativos e encerrados.");
+        System.out.println("bid <auction_id> <valor>     - Dá um lance em um leilão específico.");
+        System.out.println("createauction '<nome>' '<descricao>' <lance_inicial> <duracao_segundos> - Cria um novo leilão.");
+        System.out.println("lsonline                    - Lista todos os usuários online.");
+        System.out.println("chat <user_id> <mensagem>   - Envia uma mensagem P2P direta para outro usuário.");
+        System.out.println("help                        - Exibe a lista de comandos.");
+        System.out.println("exit                        - Sai da aplicação.");
         System.out.println("---------------------------------------------------");
     }
 
@@ -159,7 +169,7 @@ public class ClientUI {
                 }
                 break;
             case "lsonline":
-                displayCurrentState(); // Apenas re-exibe o estado atual
+                listClients();
                 break;
             case "chat":
                 if (parts.length < 2) {
@@ -185,31 +195,62 @@ public class ClientUI {
         }
     }
 
-    /**
+     /**
      * Exibe o estado atual da aplicação (leilões ativos e usuários online).
      */
     public synchronized void displayCurrentState() {
         System.out.println("\n--- LEILÕES ATIVOS ---");
+        java.util.concurrent.atomic.AtomicBoolean haveActiveAuctions = new java.util.concurrent.atomic.AtomicBoolean(false);
+
         if (client.getActiveAuctions().isEmpty()) {
             System.out.println("Nenhum leilão ativo no momento.");
         } else {
             // Ordenar por tempo restante para melhor visualização
             client.getActiveAuctions().stream()
-                .filter(item -> item.getStatus() == AuctionItem.Status.ACTIVE)
                 .sorted(Comparator.comparingLong(AuctionItem::getEndTimeMillis))
                 .forEach(item -> {
-                    long remainingSeconds = item.getRemainingTime() / 1000;
-                    System.out.printf("ID: %s | Item: %-20s | Lance Atual: %.2f (por %s) | Vendedor: %s | Tempo restante: %d segundos%n",
-                        item.getId(),
-                        item.getName(),
-                        item.getCurrentBid(),
-                        item.getHighestBidderUsername() != null ? item.getHighestBidderUsername() : "N/A",
-                        item.getSellerUsername(),
-                        remainingSeconds
-                    );
+                    long endTimeMillis = item.getEndTimeMillis();
+                    java.time.Instant endInstant = java.time.Instant.ofEpochMilli(endTimeMillis);
+                    java.time.ZonedDateTime endDateTime = endInstant.atZone(java.time.ZoneId.systemDefault());
+                    String formattedEndTime = endDateTime.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss.SSS"));
+
+                    if (System.currentTimeMillis() < endTimeMillis) {
+                        haveActiveAuctions.set(true);
+                        System.out.printf("ID: %s | Item: %-20s | Lance Atual: %.2f (por %s) | Vendedor: %s | Expira em: %s%n",
+                            item.getId(),
+                            item.getName(),
+                            item.getCurrentBid(),
+                            item.getHighestBidderUsername() != null ? item.getHighestBidderUsername() : "N/A",
+                            item.getSellerUsername(),
+                            formattedEndTime
+                        );
+                    } else {
+                        recentlyDiscontinuedAuctions.add(item);
+                    }
                 });
-            client.getActiveAuctions().stream()
-                .filter(item -> item.getStatus() == AuctionItem.Status.ENDED)
+            if (!haveActiveAuctions.get()) {
+                System.out.println("Nenhum leilão ativo no momento.");
+            }
+        }
+
+
+        System.out.println("---------------------------------------------------");
+        System.out.println("--- LEILÕES ENCERRADOS ---");
+        if (client.getDiscontinuedAuctions().isEmpty() && recentlyDiscontinuedAuctions.isEmpty()) {
+            System.out.println("Nenhum leilão encerrado.");
+        } else {
+            // Exibe leilões que foram recentemente descontinuados
+            for (AuctionItem item : recentlyDiscontinuedAuctions) {
+                System.out.printf("ID: %s | Item: %-20s | ENCERRADO | Lance Final: %.2f (por %s) | Vendedor: %s%n",
+                    item.getId(),
+                    item.getName(),
+                    item.getCurrentBid(),
+                    item.getHighestBidderUsername() != null ? item.getHighestBidderUsername() : "N/A",
+                    item.getSellerUsername()
+                );
+            }
+            recentlyDiscontinuedAuctions.clear(); // Limpa a lista após exibir
+            client.getDiscontinuedAuctions().stream()
                 .sorted(Comparator.comparingLong(AuctionItem::getEndTimeMillis))
                 .forEach(item -> {
                     System.out.printf("ID: %s | Item: %-20s | ENCERRADO | Lance Final: %.2f (por %s) | Vendedor: %s%n",
@@ -220,20 +261,31 @@ public class ClientUI {
                         item.getSellerUsername()
                     );
                 });
-        }
-
-        System.out.println("\n--- USUÁRIOS ONLINE ---");
-        if (client.getActiveUsers().isEmpty()) {
-            System.out.println("Nenhum outro usuário online.");
-        } else {
-            client.getActiveUsers().values().stream()
-                .filter(user -> !user.getUserId().equals(client.getUserId())) // Não exibe a si mesmo
-                .sorted(Comparator.comparing(UserInfo::getUsername))
-                .forEach(user -> System.out.println("ID: " + user.getUserId() + " | Nome: " + user.getUsername()));
-        }
+            }
         System.out.println("---------------------------------------------------");
-        System.out.print("> "); // Re-imprime o prompt
+        System.out.print("> ");
     }
+
+public synchronized void listClients() {
+    System.out.println("\n--- USUÁRIOS ONLINE ---");
+
+    // Filtra todos os usuários menos o próprio
+    var otherUsers = client.getActiveUsers().values().stream()
+        .filter(user -> !user.getUserId().equals(client.getUserId()))
+        .sorted(Comparator.comparing(UserInfo::getUsername))
+        .toList(); // Cria uma lista imutável com os outros usuários
+
+    if (otherUsers.isEmpty()) {
+        System.out.println("Nenhum outro usuário online.");
+    } else {
+        otherUsers.forEach(user -> 
+            System.out.println("ID: " + user.getUserId() + " | Nome: " + user.getUsername())
+        );
+    }
+
+    System.out.println("---------------------------------------------------");
+    System.out.print("> "); // Reimprime o prompt
+}
 
     /**
      * Exibe uma mensagem geral para o usuário.
@@ -266,18 +318,7 @@ public class ClientUI {
     }
 
     /**
-     * Método interno para atualizar a UI periodicamente.
-     */
-    private void refreshUI() {
-        if (loggedIn) {
-            // Solicita lista de leilões ao servidor para mantê-la atualizada
-            client.requestAuctionList();
-            // A displayCurrentState() será chamada quando a AUCTION_LIST_RESPONSE chegar.
-        }
-    }
-
-    /**
-     * Exibe a lista de comandos disponíveis.
+     * Exibe a lista de comandos disponíveis para o usuário.
      */
     private void displayHelp() {
         System.out.println("\n--- COMANDOS DISPONÍVEIS ---");

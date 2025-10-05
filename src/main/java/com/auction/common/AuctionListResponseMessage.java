@@ -7,19 +7,23 @@ import java.util.List;
  */
 public class AuctionListResponseMessage extends Message {
     private static final long serialVersionUID = 1L;
-    private List<AuctionItem> auctions;
+    private List<AuctionItem> activeAuctions;
+    private List<AuctionItem> discontinuedAuctions;
 
-    public AuctionListResponseMessage(String senderId, List<AuctionItem> auctions) {
+    public AuctionListResponseMessage(String senderId, List<AuctionItem> activeAuctions, List<AuctionItem> discontinuedAuctions) {
         super(MessageType.AUCTION_LIST_RESPONSE, senderId);
-        this.auctions = auctions;
+        this.activeAuctions = activeAuctions;
+        this.discontinuedAuctions = discontinuedAuctions;
     }
 
-    public List<AuctionItem> getAuctions() { return auctions; }
+    public List<AuctionItem> getActiveAuctions() { return activeAuctions; }
+    public List<AuctionItem> getDiscontinuedAuctions() { return discontinuedAuctions; }
 
     @Override
     public String toString() {
         return "AuctionListResponseMessage{" +
-               "auctions=" + (auctions != null ? auctions.size() : 0) + " items" +
+               "activeAuctions=" + (activeAuctions != null ? activeAuctions.size() : 0) + " items" +
+               ", discontinuedAuctions=" + (discontinuedAuctions != null ? discontinuedAuctions.size() : 0) + " items" +
                "} " + super.toString();
     }
 }

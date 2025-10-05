@@ -1,6 +1,7 @@
 package com.auction.server;
 
 import com.auction.common.*; // Importa todas as classes de mensagem e utilitários
+import com.auction.common.AuctionItem;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -210,8 +211,9 @@ public class AuctionServer {
                 sender.closeConnection(); // Irá chamar removeClient
                 break;
             case AUCTION_LIST_REQUEST:
+                // Responde com a lista de leilões
                 sendMessageToClient(sender.getUserId(), new AuctionListResponseMessage(
-                    "server", auctionManager.getLiveAuctions()
+                    "server", auctionManager.getLiveAuctions(), auctionManager.getDiscontinuedAuctions()
                 ));
                 break;
             case PLACE_BID:

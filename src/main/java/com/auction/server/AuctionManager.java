@@ -19,6 +19,8 @@ public class AuctionManager {
     // A chave é o ID do leilão, o valor é o AuctionItem.
     private final Map<String, AuctionItem> activeAuctions;
 
+    private final Map<String, AuctionItem> discontinuedAuctions;
+
     // Referência ao servidor principal para poder broadcastar atualizações aos clientes.
     private AuctionServer server;
 
@@ -31,6 +33,7 @@ public class AuctionManager {
         this.server = server;
         this.activeAuctions = new ConcurrentHashMap<>();
         addInitialAuctions();
+        this.discontinuedAuctions = new ConcurrentHashMap<>();
     }
 
     /**
@@ -112,7 +115,17 @@ public class AuctionManager {
      */
     public List<AuctionItem> getLiveAuctions() {
         return activeAuctions.values().stream()
-                .filter(item -> item.getStatus() == AuctionItem.Status.ACTIVE)
+                .sorted(Comparator.comparingLong(AuctionItem::getEndTimeMillis)) // Ordena pelo tempo de término
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Retorna uma lista de todos os leilões descontinuados (encerrados), ordenada por tempo de término.
+     *
+     * @return Uma List de AuctionItem.
+     */
+    public List<AuctionItem> getDiscontinuedAuctions() {
+        return discontinuedAuctions.values().stream()
                 .sorted(Comparator.comparingLong(AuctionItem::getEndTimeMillis)) // Ordena pelo tempo de término
                 .collect(Collectors.toList());
     }
@@ -142,9 +155,17 @@ public class AuctionManager {
                     System.out.println(statusMessage);
                 }
                 
+                // Atualiza o leilão no mapa (não removemos para manter o histórico)
+                activeAuctions.put(auction.getId(), auction);
+
+                // Move o leilão para a lista de descontinuados
+                discontinuedAuctions.put(auction.getId(), auction);
+                activeAuctions.remove(auction.getId());
+
                 // Notifica todos os clientes que o leilão terminou
                 server.broadcast(new AuctionUpdateMessage("server", auction, "Leilão encerrado! " + auction.getName() + " (ID: " + auction.getId() + "). " + statusMessage));
             }
         }
+        
     }
 }

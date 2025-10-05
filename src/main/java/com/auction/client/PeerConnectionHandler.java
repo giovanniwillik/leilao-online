@@ -55,9 +55,9 @@ public class PeerConnectionHandler implements Runnable {
             if (peerId == null) {
                 Message firstMessage = (Message) in.readObject();
                 this.peerId = firstMessage.getSenderId(); // Descobre o ID do peer
+                client.addActivePeerConnection(this.peerId, this);  // Adiciona ao mapa de conexões ativas
+                
                 client.getUi().displayMessage("Conexão P2P estabelecida com: " + peerId);
-                // Pode haver uma lógica aqui para armazenar este handler no mapa de conexões P2P do cliente principal
-                // client.addPeerConnection(peerId, this); // Uma vez que o ID é conhecido
                 client.handlePeerMessage(firstMessage); // Processa a primeira mensagem
             }
 

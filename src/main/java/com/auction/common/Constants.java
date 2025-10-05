@@ -20,7 +20,7 @@ public class Constants {
      * Clientes enviarão periodicamente uma mensagem Keep-Alive para o servidor
      * para indicar que ainda estão ativos e conectados.
      */
-    public static final long KEEP_ALIVE_INTERVAL_MS = 5000; // 5 segundos
+    public static final long KEEP_ALIVE_INTERVAL_MS = 10000; // 10 segundos
 
     /**
      * Intervalo em milissegundos para o servidor verificar o término dos leilões.
@@ -41,5 +41,5 @@ public class Constants {
      * O servidor executará esta verificação periodicamente para identificar clientes
      * que não enviaram mensagens dentro do tempo permitido e desconectá-los.
      */
-    public static final long CLIENT_INACTIVITY_CHECK_INTERVAL_MS = 20000; // 20 segundos
+    public static final long CLIENT_INACTIVITY_CHECK_INTERVAL_MS = 30000; // 30 segundos
 }

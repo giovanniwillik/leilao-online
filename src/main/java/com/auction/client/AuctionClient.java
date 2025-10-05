@@ -35,6 +35,7 @@ public class AuctionClient {
 
     // Estado local da aplicação (listas de leilões e usuários online)
     private final List<AuctionItem> activeAuctions = Collections.synchronizedList(new ArrayList<>());
+    private final List<AuctionItem> discontinuedAuctions = Collections.synchronizedList(new ArrayList<>());
     private final Map<String, UserInfo> activeUsers = Collections.synchronizedMap(new HashMap<>());
 
     // Componentes para a comunicação P2P
@@ -60,9 +61,19 @@ public class AuctionClient {
     public String getUsername() { return username; }
     public int getP2pPort() { return p2pPort; }
     public List<AuctionItem> getActiveAuctions() { return activeAuctions; }
+    public List<AuctionItem> getDiscontinuedAuctions() { return discontinuedAuctions; }
+    public List<AuctionItem> getLiveAuctions() { return activeAuctions; }
+    public List<AuctionItem> getAllAuctions() {
+        List<AuctionItem> all = new ArrayList<>();
+        all.addAll(activeAuctions);
+        all.addAll(discontinuedAuctions);
+        return all;
+    }
     public Map<String, UserInfo> getActiveUsers() { return activeUsers; }
-    public ClientUI getUi() { return ui; } // <--- MÉTODO ADICIONADO
-    public Map<String, PeerConnectionHandler> getActivePeerConnections() { return activePeerConnections; } // <--- MÉTODO ADICIONADO
+    public ClientUI getUi() { return ui; }
+
+    public Map<String, PeerConnectionHandler> getActivePeerConnections() { return activePeerConnections; };
+    private final Map<String, List<DirectMessage>> pendingP2PMessages = Collections.synchronizedMap(new HashMap<>());
 
     public void setUi(ClientUI ui) { this.ui = ui; }
 
@@ -152,8 +163,9 @@ public class AuctionClient {
      * Este método é chamado pela ServerListener thread.
      *
      * @param message A Message recebida do servidor.
+     * @throws InterruptedException 
      */
-    public void handleServerMessage(Message message) {
+    public void handleServerMessage(Message message) throws InterruptedException {
         ui.displayMessage("Recebido do servidor: " + message.getType());
         switch (message.getType()) {
             case LOGIN_RESPONSE:
@@ -166,7 +178,9 @@ public class AuctionClient {
                     activeUsers.clear();
                     loginResp.getActiveUsers().forEach(user -> activeUsers.put(user.getUserId(), user));
                     ui.setLoggedIn(true); // Atualiza o estado de login da UI
+                    Thread.sleep(2000); // Pausa para o usuário ler a mensagem
                     ui.displayCurrentState();
+                    ui.listClients();
                 } else {
                     ui.displayError("Falha no login: " + loginResp.getMessage());
                     closeConnections();
@@ -175,7 +189,9 @@ public class AuctionClient {
             case AUCTION_LIST_RESPONSE:
                 AuctionListResponseMessage auctionListResp = (AuctionListResponseMessage) message;
                 activeAuctions.clear();
-                activeAuctions.addAll(auctionListResp.getAuctions());
+                activeAuctions.addAll(auctionListResp.getActiveAuctions());
+                discontinuedAuctions.clear();
+                discontinuedAuctions.addAll(auctionListResp.getDiscontinuedAuctions());
                 ui.displayCurrentState();
                 break;
             case AUCTION_UPDATE:
@@ -201,7 +217,7 @@ public class AuctionClient {
                         ui.displayMessage("Conexão P2P com '" + userUpdate.getUser().getUsername() + "' fechada.");
                     }
                 }
-                ui.displayCurrentState();
+                ui.listClients();
                 break;
             case PEER_INFO_RESPONSE:
                 PeerInfoResponseMessage peerInfoResp = (PeerInfoResponseMessage) message;
@@ -213,9 +229,11 @@ public class AuctionClient {
                         connectToPeer(peerInfoResp.getTargetUserId(), peerInfoResp.getTargetIp(), peerInfoResp.getTargetPort());
                     } catch (IOException e) {
                         ui.displayError("Erro ao tentar conectar diretamente ao peer: " + e.getMessage());
+                        pendingP2PMessages.remove(peerInfoResp.getTargetUserId());
                     }
                 } else {
                     ui.displayMessage("Peer '" + peerInfoResp.getTargetUserId() + "' não encontrado ou offline.");
+                    pendingP2PMessages.remove(peerInfoResp.getTargetUserId());
                 }
                 break;
             default:
@@ -240,7 +258,6 @@ public class AuctionClient {
             activeAuctions.add(newItem); // Adiciona como novo item
         }
     }
-
 
     // --- Métodos de ação do cliente (chamados pela UI) ---
 
@@ -304,9 +321,40 @@ public class AuctionClient {
         Socket directPeerSocket = new Socket(peerIp, peerPort);
         // Cria um PeerConnectionHandler para gerenciar esta conexão P2P
         PeerConnectionHandler handler = new PeerConnectionHandler(directPeerSocket, this, peerId);
-        activePeerConnections.put(peerId, handler);
+        addActivePeerConnection(peerId, handler);
         new Thread(handler).start();
         ui.displayMessage("Conectado diretamente ao peer " + peerId + " (IP: " + peerIp + ", Porta P2P: " + peerPort + ") para P2P.");
+    }
+
+    /**
+     * Método chamado quando uma conexão P2P é estabelecida com sucesso.
+     * Verifica se há mensagens pendentes para este peer e as envia.
+     *
+     * @param peerId ID do cliente peer com o qual a conexão foi estabelecida.
+     */
+    public void addActivePeerConnection(String peerId, PeerConnectionHandler handler) {
+        activePeerConnections.put(peerId, handler);
+        onPeerConnectionEstablished(peerId); // Chama o método para verificar e enviar mensagens pendentes
+    }
+
+    /**
+     * Verifica e envia mensagens P2P pendentes para o peer especificado.
+     *
+     * @param peerId ID do cliente peer.
+     */
+    private void onPeerConnectionEstablished(String peerId) {
+        List<DirectMessage> messagesToSend = pendingP2PMessages.remove(peerId); // Obtém e remove mensagens pendentes
+        if (messagesToSend != null && !messagesToSend.isEmpty()) {
+            PeerConnectionHandler handler = activePeerConnections.get(peerId);
+            if (handler != null) {
+                for (DirectMessage message : messagesToSend) {
+                    handler.sendMessage(message);
+                    ui.displayMessage("Mensagem P2P pendente enviada para " + activeUsers.get(peerId).getUsername() + ".");
+                }
+            } else {
+                ui.displayError("Erro interno: Handler P2P não encontrado para peer " + activeUsers.get(peerId).getUsername() + " após conexão estabelecida. Mensagens pendentes não enviadas.");
+            }
+        }
     }
 
     /**
@@ -317,6 +365,7 @@ public class AuctionClient {
      * @param content Conteúdo da mensagem.
      * @param relatedAuctionId ID opcional do leilão relacionado.
      */
+    @SuppressWarnings("unused")
     public void sendDirectMessage(String targetUserId, String content, String relatedAuctionId) {
         if (targetUserId.equals(userId)) {
             ui.displayMessage("Você não pode enviar mensagem direta para si mesmo.");
@@ -325,7 +374,12 @@ public class AuctionClient {
         PeerConnectionHandler handler = activePeerConnections.get(targetUserId);
         if (handler != null) {
             handler.sendMessage(new DirectMessage(userId, targetUserId, content, relatedAuctionId));
+            ui.displayMessage("Mensagem direta enviada para " + activeUsers.get(targetUserId).getUsername() + ".");
         } else {
+            // Armazena a mensagem para envio posterior
+            DirectMessage pendingMessage = new DirectMessage(userId, targetUserId, content, relatedAuctionId);
+            pendingP2PMessages.computeIfAbsent(targetUserId, k -> Collections.synchronizedList(new ArrayList<>())).add(pendingMessage);
+
             ui.displayMessage("Não há conexão P2P direta com " + targetUserId + ". Tentando estabelecer...");
             UserInfo targetUser = activeUsers.get(targetUserId);
             if (targetUser != null) {

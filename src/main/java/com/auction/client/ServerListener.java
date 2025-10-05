@@ -48,6 +48,9 @@ public class ServerListener implements Runnable {
         } catch (IOException | ClassNotFoundException e) {
             // Outros erros de I/O ou desserialização de objeto.
             client.getUi().displayError("Erro ao ler mensagem do servidor: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // Restaura o estado de interrupção
+            e.printStackTrace();
         } finally {
             client.closeConnections(); // Garante que todos os recursos do cliente sejam fechados.
         }
