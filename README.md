@@ -21,8 +21,13 @@
   - [🚀 Como Executar o Projeto](#-como-executar-o-projeto)
     - [Pré-requisitos](#pré-requisitos)
     - [Estrutura de Pastas](#estrutura-de-pastas)
-    - [🧱 Compilação e Execução Manual](#-compilação-e-execução-manual)
-    - [⚙️ Compilação e Execução](#️-compilação-e-execução)
+  - [⚙️ Compilação e Execução](#️-compilação-e-execução)
+    - [🧩 1. Usando um IDE (IntelliJ IDEA, Eclipse, etc.)](#-1-usando-um-ide-intellij-idea-eclipse-etc)
+    - [💻 2. Via Linha de Comando](#-2-via-linha-de-comando)
+      - [🔧 Compilar o Projeto](#-compilar-o-projeto)
+      - [🚀 Executar o Servidor](#-executar-o-servidor)
+    - [👥 Executar Múltiplos Clientes](#-executar-múltiplos-clientes)
+    - [💬 Comandos Disponíveis no Cliente](#-comandos-disponíveis-no-cliente)
 
 ---
 
@@ -134,47 +139,67 @@ O objetivo principal é demonstrar conceitos de **programação distribuída**, 
 
 ```
 
-### 🧱 Compilação e Execução Manual
+## ⚙️ Compilação e Execução
 
-### ⚙️ Compilação e Execução
+Certifique-se de que todos os arquivos `.java` estão organizados conforme a estrutura de pastas mostrada anteriormente.  
+Você pode compilar e executar o projeto de duas maneiras:
 
-Certifique-se de que todos os arquivos `.java` estão organizados corretamente na estrutura de pasta mostrada na seção anterior.
+---
 
-Você pode compilar o projeto de duas formas:
+### 🧩 1. Usando um IDE (IntelliJ IDEA, Eclipse, etc.)
 
-- **Usando um IDE** (como IntelliJ IDEA ou Eclipse):
+Abra o projeto no IDE e execute o **build** normalmente.  
+Depois, basta rodar a classe principal:
 
-  Basta abrir o projeto e executar o build normalmente.
+- **Servidor:** `AuctionServer`  
+- **Cliente:** `AuctionClient`
 
-- **Via linha de comando:**
+💡 *Essa é a forma mais prática para desenvolvimento e testes rápidos.*
 
-  ```bash
-  javac -d out src/main/java/com/auction/common/*.java src/main/java/com/auction/server/*.java src/main/java/com/auction/client/*.java
+---
 
-- 🖥️ **Executar o Servidor**
+### 💻 2. Via Linha de Comando
 
-Execute o servidor a partir do diretório raiz do projeto:
+No diretório raiz do projeto, execute os seguintes comandos:
 
+#### 🔧 Compilar o Projeto
+
+```bash
+javac -d out src/main/java/com/auction/common/*.java \
+             src/main/java/com/auction/server/*.java \
+             src/main/java/com/auction/client/*.java
+```
+
+#### 🚀 Executar o Servidor
+
+```bash
 java -cp out com.auction.server.AuctionServer
 
-💡 Também é possível iniciar o servidor diretamente pelo seu IDE.
+💡 Você também pode iniciar o servidor diretamente pelo seu IDE.
+```
 
-- 👥 **Executar Múltiplos Clientes**
+---
 
-Abra vários terminais (ou instâncias do console no IDE) e, em cada um, execute:
+### 👥 Executar Múltiplos Clientes
 
+Abra quantos terminais quiser (ou consoles no IDE) e execute em cada um:
+
+```bash
 java -cp out com.auction.client.AuctionClient
 
-Cada cliente solicitará um nome de usuário para login.
+Cada cliente solicitará um **nome de usuário** para login.
+```
 
-- 💬 **Teste os Comandos**
+---
 
-Após conectar, você pode testar os seguintes comandos no cliente:
+### 💬 Comandos Disponíveis no Cliente
 
-lsauctions      → Lista todos os leilões ativos
-createauction   → Cria um novo leilão
-bid             → Realiza um lance em um item
-lsonline        → Mostra os usuários online
-chat            → Envia mensagens entre usuários
-help            → Mostra comandos disponíveis
-exit            → Sai da aplicação
+| Comando         | Descrição                                   |
+|-----------------|---------------------------------------------|
+| `lsauctions`    | Lista todos os leilões ativos               |
+| `createauction` | Cria um novo leilão                         |
+| `bid`           | Realiza um lance em um item                 |
+| `lsonline`      | Mostra os usuários online                   |
+| `chat`          | Envia mensagens entre usuários              |
+| `help`          | Mostra todos os comandos disponíveis        |
+| `exit`          | Encerra a aplicação                         |
