@@ -26,7 +26,7 @@
     - [💻 2. Via Linha de Comando](#-2-via-linha-de-comando)
       - [🔧 Compilar o Projeto](#-compilar-o-projeto)
       - [🚀 Executar o Servidor](#-executar-o-servidor)
-    - [👥 Executar Múltiplos Clientes](#-executar-múltiplos-clientes)
+      - [👥 Executar Múltiplos Clientes](#-executar-múltiplos-clientes)
     - [💬 Comandos Disponíveis no Cliente](#-comandos-disponíveis-no-cliente)
 
 ---
@@ -180,15 +180,25 @@ java -cp out com.auction.server.AuctionServer
 
 ---
 
-### 👥 Executar Múltiplos Clientes
+#### 👥 Executar Múltiplos Clientes
 
-Abra quantos terminais quiser (ou consoles no IDE) e execute em cada um:
+Para rodar na mesma máquina que o servidor (localmente), abra quantos terminais quiser (ou consoles no IDE) e execute em cada um:
 
 ```bash
 java -cp out com.auction.client.AuctionClient
 
 Cada cliente solicitará um **nome de usuário** para login.
 ```
+
+ Para rodar em uma máquina diferente da do servidor (distribuído), em cada máquina que o cliente for rodar, o endereço IP real da máquina onde o servidor está rodando deve ser informado como argumento:
+
+```bash
+java -cp out com.auction.client.AuctionClient <IP_DO_SERVIDOR>
+
+Cada cliente solicitará um **nome de usuário** para login.
+```
+
+Vale ressaltar que a conexão via TCP é feita pelo IP privado da máquina, funcionando, portanto, apenas se as máquinas do servidor e clientes estiverem na mesma rede local (LAN). Para que sua aplicação funcione pela internet (WAN), você precisaria de redirecionamento de porta (port forwarding) no roteador da máquina onde o servidor e os clientes P2P estão localizados.
 
 ---
 

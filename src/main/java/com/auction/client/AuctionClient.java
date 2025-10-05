@@ -431,18 +431,28 @@ public class AuctionClient {
     /**
      * Método principal para iniciar a aplicação cliente.
      *
-     * @param args Argumentos da linha de comando (não usados aqui).
+     * @param args Argumentos da linha de comando (espera-se o IP do servidor como primeiro argumento).
      */
     public static void main(String[] args) {
         AuctionClient client = new AuctionClient();
-        ClientUI ui = new ClientUI(client); // A UI (console neste caso)
-        client.setUi(ui); // Atribui a UI ao cliente para que ele possa interagir com ela.
+        ClientUI ui = new ClientUI(client);
+        client.setUi(ui);
+
+        String serverIp = "localhost"; // Valor padrão para testes locais
+
+        // Verifica se um IP do servidor foi fornecido como argumento
+        if (args.length > 0) {
+            serverIp = args[0];
+        } else {
+            ui.displayMessage("Nenhum IP do servidor fornecido. Usando 'localhost' como padrão.");
+            ui.displayMessage("Uso: java -cp out com.auction.client.AuctionClient <IP_DO_SERVIDOR>");
+        }
 
         try {
             ui.displayMessage("Digite 'exit' para sair a qualquer momento.\n");
-            ui.displayMessage("Tentando conectar ao servidor...\n");
-            client.connectToServer("localhost", Constants.SERVER_PORT); // Conecta ao servidor
-            ui.start(); // Inicia a interface do usuário, que solicitará o login
+            ui.displayMessage("Tentando conectar ao servidor " + serverIp + "...\n");
+            client.connectToServer(serverIp, Constants.SERVER_PORT); // Conecta ao servidor com o IP fornecido
+            ui.start();
         } catch (IOException e) {
             ui.displayError("Não foi possível conectar ao servidor ou iniciar o servidor P2P: " + e.getMessage());
         } finally {
