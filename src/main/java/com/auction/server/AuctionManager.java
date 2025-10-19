@@ -42,16 +42,16 @@ public class AuctionManager {
      */
     private void addInitialAuctions() {
         // Exemplo: 1 minuto (60 segundos) de duração
-        AuctionItem item1 = new AuctionItem("Quadro Abstrato", "Obra de arte moderna para sua sala.", 50.0, 60, "server", "Admin");
-        AuctionItem item2 = new AuctionItem("Relógio de Bolso Antigo", "Peça rara do século XIX.", 120.0, 90, "server", "Admin");
-        AuctionItem item3 = new AuctionItem("Livro Raro", "Primeira edição de clássico da literatura.", 30.0, 45, "server", "Admin");
+        // AuctionItem item1 = new AuctionItem("Quadro Abstrato", "Obra de arte moderna para sua sala.", 50.0, 60, "server", "Admin");
+        // AuctionItem item2 = new AuctionItem("Relógio de Bolso Antigo", "Peça rara do século XIX.", 120.0, 90, "server", "Admin");
+        // AuctionItem item3 = new AuctionItem("Livro Raro", "Primeira edição de clássico da literatura.", 30.0, 45, "server", "Admin");
 
-        activeAuctions.put(item1.getId(), item1);
-        activeAuctions.put(item2.getId(), item2);
-        activeAuctions.put(item3.getId(), item3);
+        // activeAuctions.put(item1.getId(), item1);
+        // activeAuctions.put(item2.getId(), item2);
+        // activeAuctions.put(item3.getId(), item3);
 
-        System.out.println("Leilões iniciais adicionados:");
-        activeAuctions.values().forEach(System.out::println);
+        // System.out.println("Leilões iniciais adicionados:");
+        // activeAuctions.values().forEach(System.out::println);
     }
 
     /**

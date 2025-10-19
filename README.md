@@ -165,9 +165,7 @@ No diretório raiz do projeto, execute os seguintes comandos:
 #### 🔧 Compilar o Projeto
 
 ```bash
-javac -d out src/main/java/com/auction/common/*.java \
-             src/main/java/com/auction/server/*.java \
-             src/main/java/com/auction/client/*.java
+javac -d out src/main/java/com/auction/common/*.java src/main/java/com/auction/server/*.java src/main/java/com/auction/client/*.java
 ```
 
 #### 🚀 Executar o Servidor

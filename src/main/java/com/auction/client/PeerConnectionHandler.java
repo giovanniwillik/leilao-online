@@ -94,6 +94,7 @@ public class PeerConnectionHandler implements Runnable {
      */
     public void sendMessage(Message message) {
         try {
+            out.reset();
             out.writeObject(message);
             out.flush(); // Garante que a mensagem seja enviada imediatamente
         } catch (IOException e) {

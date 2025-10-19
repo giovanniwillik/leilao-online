@@ -147,6 +147,7 @@ public class AuctionClient {
      */
     public void sendMessageToServer(Message message) {
         try {
+            outToServer.reset();
             outToServer.writeObject(message);
             outToServer.flush();
         } catch (SocketException e) {
