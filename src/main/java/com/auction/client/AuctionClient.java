@@ -21,12 +21,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Cliente para a aplicação de leilões online.
- * Gerencia a conexão com o servidor, o estado local da aplicação e a comunicação P2P.
+ * Gerencia a conexão com o servidor, o estado local da aplicação e a
+ * comunicação P2P.
  */
 public class AuctionClient {
-    private String userId;      // ID único deste cliente.
-    private String username;    // Nome de usuário (display name).
-    private int p2pPort;        // Porta que este cliente usará para aceitar conexões P2P.
+    private String userId; // ID único deste cliente.
+    private String username; // Nome de usuário (display name).
+    private int p2pPort; // Porta que este cliente usará para aceitar conexões P2P.
 
     // Conexão com o servidor principal
     private Socket serverConnectionSocket;
@@ -40,7 +41,8 @@ public class AuctionClient {
 
     // Componentes para a comunicação P2P
     private ServerSocket p2pServerSocket; // Servidor para aceitar conexões P2P de outros clientes
-    private final Map<String, PeerConnectionHandler> activePeerConnections = Collections.synchronizedMap(new HashMap<>()); // Conexões P2P diretas estabelecidas
+    private final Map<String, PeerConnectionHandler> activePeerConnections = Collections
+            .synchronizedMap(new HashMap<>()); // Conexões P2P diretas estabelecidas
 
     // Scheduler para tarefas em segundo plano (ex: Keep-Alive)
     private ScheduledExecutorService scheduler;
@@ -57,30 +59,59 @@ public class AuctionClient {
         this.scheduler = Executors.newSingleThreadScheduledExecutor();
     }
 
-    public String getUserId() { return userId; }
-    public String getUsername() { return username; }
-    public int getP2pPort() { return p2pPort; }
-    public List<AuctionItem> getActiveAuctions() { return activeAuctions; }
-    public List<AuctionItem> getDiscontinuedAuctions() { return discontinuedAuctions; }
-    public List<AuctionItem> getLiveAuctions() { return activeAuctions; }
+    public String getUserId() {
+        return userId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public int getP2pPort() {
+        return p2pPort;
+    }
+
+    public List<AuctionItem> getActiveAuctions() {
+        return activeAuctions;
+    }
+
+    public List<AuctionItem> getDiscontinuedAuctions() {
+        return discontinuedAuctions;
+    }
+
+    public List<AuctionItem> getLiveAuctions() {
+        return activeAuctions;
+    }
+
     public List<AuctionItem> getAllAuctions() {
         List<AuctionItem> all = new ArrayList<>();
         all.addAll(activeAuctions);
         all.addAll(discontinuedAuctions);
         return all;
     }
-    public Map<String, UserInfo> getActiveUsers() { return activeUsers; }
-    public ClientUI getUi() { return ui; }
 
-    public Map<String, PeerConnectionHandler> getActivePeerConnections() { return activePeerConnections; };
+    public Map<String, UserInfo> getActiveUsers() {
+        return activeUsers;
+    }
+
+    public ClientUI getUi() {
+        return ui;
+    }
+
+    public Map<String, PeerConnectionHandler> getActivePeerConnections() {
+        return activePeerConnections;
+    };
+
     private final Map<String, List<DirectMessage>> pendingP2PMessages = Collections.synchronizedMap(new HashMap<>());
 
-    public void setUi(ClientUI ui) { this.ui = ui; }
+    public void setUi(ClientUI ui) {
+        this.ui = ui;
+    }
 
     /**
      * Tenta conectar-se ao servidor de leilões.
      *
-     * @param serverIp O endereço IP do servidor.
+     * @param serverIp   O endereço IP do servidor.
      * @param serverPort A porta do servidor.
      * @throws IOException Se houver um erro de conexão.
      */
@@ -94,7 +125,8 @@ public class AuctionClient {
 
         serverConnectionSocket = new Socket(serverIp, serverPort);
         // A ordem de criação dos ObjectOutputStream e ObjectInputStream é CRUCIAL!
-        // Output stream DEVE ser criado antes do input stream para evitar deadlock na conexão inicial.
+        // Output stream DEVE ser criado antes do input stream para evitar deadlock na
+        // conexão inicial.
         outToServer = new ObjectOutputStream(serverConnectionSocket.getOutputStream());
         inFromServer = new ObjectInputStream(serverConnectionSocket.getInputStream());
         ui.displayMessage("Conectado ao servidor de leilões em " + serverIp + ":" + serverPort);
@@ -104,7 +136,8 @@ public class AuctionClient {
     }
 
     /**
-     * Inicia um ServerSocket para que este cliente possa aceitar conexões P2P de outros clientes.
+     * Inicia um ServerSocket para que este cliente possa aceitar conexões P2P de
+     * outros clientes.
      * Tenta portas sequenciais a partir de P2P_BASE_PORT.
      */
     private void startP2PServer() {
@@ -118,7 +151,8 @@ public class AuctionClient {
                 new Thread(new PeerListener(p2pServerSocket, this)).start();
             } catch (IOException e) {
                 ui.displayError("Porta P2P " + p2pPort + " em uso. Tentando a próxima...");
-                if (currentP2PPort.get() > Constants.P2P_BASE_PORT + 100) { // Limite de tentativas para evitar loop infinito
+                if (currentP2PPort.get() > Constants.P2P_BASE_PORT + 100) { // Limite de tentativas para evitar loop
+                                                                            // infinito
                     ui.displayError("Não foi possível encontrar uma porta P2P disponível após 100 tentativas.");
                     break;
                 }
@@ -136,8 +170,8 @@ public class AuctionClient {
         sendMessageToServer(new LoginMessage(userId, username, p2pPort));
         // Agendar o envio de mensagens Keep-Alive para o servidor.
         scheduler.scheduleAtFixedRate(() -> sendMessageToServer(new KeepAliveMessage(userId)),
-                                       Constants.KEEP_ALIVE_INTERVAL_MS,
-                                       Constants.KEEP_ALIVE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+                Constants.KEEP_ALIVE_INTERVAL_MS,
+                Constants.KEEP_ALIVE_INTERVAL_MS, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -147,6 +181,7 @@ public class AuctionClient {
      */
     public void sendMessageToServer(Message message) {
         try {
+            // Reset the stream so that updated objects are fully serialized
             outToServer.reset();
             outToServer.writeObject(message);
             outToServer.flush();
@@ -164,7 +199,7 @@ public class AuctionClient {
      * Este método é chamado pela ServerListener thread.
      *
      * @param message A Message recebida do servidor.
-     * @throws InterruptedException 
+     * @throws InterruptedException
      */
     public void handleServerMessage(Message message) throws InterruptedException {
         ui.displayMessage("Recebido do servidor: " + message.getType());
@@ -200,7 +235,7 @@ public class AuctionClient {
                 // Atualiza o leilão na lista local ou adiciona se for novo
                 updateOrCreateAuctionLocally(auctionUpdate.getUpdatedAuctionItem());
                 ui.displayMessage("--- Leilão atualizado: " + auctionUpdate.getUpdatedAuctionItem().getName() +
-                                   " - " + auctionUpdate.getUpdateDescription() + " ---");
+                        " - " + auctionUpdate.getUpdateDescription() + " ---");
                 ui.displayCurrentState();
                 break;
             case USER_STATUS_UPDATE:
@@ -224,10 +259,11 @@ public class AuctionClient {
                 PeerInfoResponseMessage peerInfoResp = (PeerInfoResponseMessage) message;
                 if (peerInfoResp.getTargetIp() != null) {
                     ui.displayMessage("Informações do peer '" + peerInfoResp.getTargetUserId() + "': " +
-                                       peerInfoResp.getTargetIp() + ":" + peerInfoResp.getTargetPort());
+                            peerInfoResp.getTargetIp() + ":" + peerInfoResp.getTargetPort());
                     try {
                         // Tenta conectar diretamente ao peer com as informações recebidas
-                        connectToPeer(peerInfoResp.getTargetUserId(), peerInfoResp.getTargetIp(), peerInfoResp.getTargetPort());
+                        connectToPeer(peerInfoResp.getTargetUserId(), peerInfoResp.getTargetIp(),
+                                peerInfoResp.getTargetPort());
                     } catch (IOException e) {
                         ui.displayError("Erro ao tentar conectar diretamente ao peer: " + e.getMessage());
                         pendingP2PMessages.remove(peerInfoResp.getTargetUserId());
@@ -244,6 +280,7 @@ public class AuctionClient {
 
     /**
      * Atualiza um AuctionItem na lista local ou o adiciona se for novo.
+     * 
      * @param newItem O AuctionItem para atualizar/adicionar.
      */
     private void updateOrCreateAuctionLocally(AuctionItem newItem) {
@@ -273,14 +310,16 @@ public class AuctionClient {
             return;
         }
         if (amount <= item.getCurrentBid()) {
-            ui.displayError("Seu lance de " + amount + " deve ser maior que o lance atual de " + item.getCurrentBid() + ".");
+            ui.displayError(
+                    "Seu lance de " + amount + " deve ser maior que o lance atual de " + item.getCurrentBid() + ".");
             return;
         }
         sendMessageToServer(new PlaceBidMessage(userId, auctionId, amount, username));
     }
 
     public void createAuction(String name, String description, double startBid, int durationSeconds) {
-        if (name == null || name.trim().isEmpty() || description == null || description.trim().isEmpty() || startBid <= 0 || durationSeconds <= 0) {
+        if (name == null || name.trim().isEmpty() || description == null || description.trim().isEmpty()
+                || startBid <= 0 || durationSeconds <= 0) {
             ui.displayError("Nome, descrição, lance inicial e duração são obrigatórios e devem ser válidos.");
             return;
         }
@@ -304,8 +343,8 @@ public class AuctionClient {
      * Tenta estabelecer uma conexão P2P com outro cliente.
      * Se já houver uma conexão ativa, não faz nada.
      *
-     * @param peerId ID do cliente peer.
-     * @param peerIp Endereço IP do cliente peer.
+     * @param peerId   ID do cliente peer.
+     * @param peerIp   Endereço IP do cliente peer.
      * @param peerPort Porta P2P do cliente peer.
      * @throws IOException Se houver um erro ao conectar.
      */
@@ -324,7 +363,8 @@ public class AuctionClient {
         PeerConnectionHandler handler = new PeerConnectionHandler(directPeerSocket, this, peerId);
         addActivePeerConnection(peerId, handler);
         new Thread(handler).start();
-        ui.displayMessage("Conectado diretamente ao peer " + peerId + " (IP: " + peerIp + ", Porta P2P: " + peerPort + ") para P2P.");
+        ui.displayMessage("Conectado diretamente ao peer " + peerId + " (IP: " + peerIp + ", Porta P2P: " + peerPort
+                + ") para P2P.");
     }
 
     /**
@@ -350,10 +390,13 @@ public class AuctionClient {
             if (handler != null) {
                 for (DirectMessage message : messagesToSend) {
                     handler.sendMessage(message);
-                    ui.displayMessage("Mensagem P2P pendente enviada para " + activeUsers.get(peerId).getUsername() + ".");
+                    ui.displayMessage(
+                            "Mensagem P2P pendente enviada para " + activeUsers.get(peerId).getUsername() + ".");
                 }
             } else {
-                ui.displayError("Erro interno: Handler P2P não encontrado para peer " + activeUsers.get(peerId).getUsername() + " após conexão estabelecida. Mensagens pendentes não enviadas.");
+                ui.displayError(
+                        "Erro interno: Handler P2P não encontrado para peer " + activeUsers.get(peerId).getUsername()
+                                + " após conexão estabelecida. Mensagens pendentes não enviadas.");
             }
         }
     }
@@ -362,8 +405,8 @@ public class AuctionClient {
      * Envia uma mensagem direta para outro peer via conexão P2P.
      * Se não houver uma conexão P2P ativa, tenta solicitá-la ao servidor.
      *
-     * @param targetUserId ID do cliente de destino.
-     * @param content Conteúdo da mensagem.
+     * @param targetUserId     ID do cliente de destino.
+     * @param content          Conteúdo da mensagem.
      * @param relatedAuctionId ID opcional do leilão relacionado.
      */
     @SuppressWarnings("unused")
@@ -379,15 +422,17 @@ public class AuctionClient {
         } else {
             // Armazena a mensagem para envio posterior
             DirectMessage pendingMessage = new DirectMessage(userId, targetUserId, content, relatedAuctionId);
-            pendingP2PMessages.computeIfAbsent(targetUserId, k -> Collections.synchronizedList(new ArrayList<>())).add(pendingMessage);
+            pendingP2PMessages.computeIfAbsent(targetUserId, k -> Collections.synchronizedList(new ArrayList<>()))
+                    .add(pendingMessage);
 
             ui.displayMessage("Não há conexão P2P direta com " + targetUserId + ". Tentando estabelecer...");
             UserInfo targetUser = activeUsers.get(targetUserId);
             if (targetUser != null) {
-                 // Se o usuário estiver online, solicita as informações P2P ao servidor
-                 requestPeerInfo(targetUserId);
-                 // O usuário precisará tentar enviar a mensagem novamente depois que a conexão P2P for estabelecida
-                 ui.displayMessage("Solicitada informação P2P ao servidor. Tente enviar a mensagem novamente em breve.");
+                // Se o usuário estiver online, solicita as informações P2P ao servidor
+                requestPeerInfo(targetUserId);
+                // O usuário precisará tentar enviar a mensagem novamente depois que a conexão
+                // P2P for estabelecida
+                ui.displayMessage("Solicitada informação P2P ao servidor. Tente enviar a mensagem novamente em breve.");
             } else {
                 ui.displayError("Usuário com ID " + targetUserId + " não está online para comunicação P2P.");
             }
@@ -404,7 +449,9 @@ public class AuctionClient {
         ui.displayMessage("Recebido P2P de " + message.getSenderId() + ": " + message.getType());
         if (message.getType() == MessageType.DIRECT_MESSAGE) {
             DirectMessage dm = (DirectMessage) message;
-            String senderUsername = activeUsers.containsKey(dm.getSenderId()) ? activeUsers.get(dm.getSenderId()).getUsername() : dm.getSenderId();
+            String senderUsername = activeUsers.containsKey(dm.getSenderId())
+                    ? activeUsers.get(dm.getSenderId()).getUsername()
+                    : dm.getSenderId();
             ui.displayMessage("[P2P de " + senderUsername + "]: " + dm.getContent());
         }
         // Outros tipos de mensagens P2P podem ser tratados aqui
@@ -415,12 +462,17 @@ public class AuctionClient {
      */
     public void closeConnections() {
         ui.displayMessage("Fechando conexões...");
-        if (scheduler != null) scheduler.shutdownNow();
+        if (scheduler != null)
+            scheduler.shutdownNow();
         try {
-            if (outToServer != null) outToServer.close();
-            if (inFromServer != null) inFromServer.close();
-            if (serverConnectionSocket != null) serverConnectionSocket.close();
-            if (p2pServerSocket != null && !p2pServerSocket.isClosed()) p2pServerSocket.close();
+            if (outToServer != null)
+                outToServer.close();
+            if (inFromServer != null)
+                inFromServer.close();
+            if (serverConnectionSocket != null)
+                serverConnectionSocket.close();
+            if (p2pServerSocket != null && !p2pServerSocket.isClosed())
+                p2pServerSocket.close();
             // Fecha todas as conexões P2P ativas
             activePeerConnections.values().forEach(PeerConnectionHandler::closeConnection);
             ui.displayMessage("Cliente " + username + " desconectado.");
@@ -432,7 +484,8 @@ public class AuctionClient {
     /**
      * Método principal para iniciar a aplicação cliente.
      *
-     * @param args Argumentos da linha de comando (espera-se o IP do servidor como primeiro argumento).
+     * @param args Argumentos da linha de comando (espera-se o IP do servidor como
+     *             primeiro argumento).
      */
     public static void main(String[] args) {
         AuctionClient client = new AuctionClient();

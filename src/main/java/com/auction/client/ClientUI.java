@@ -12,8 +12,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
 
 /**
- * Interface de Usuário para o cliente do sistema de leilões (baseado em console).
- * Permite que o usuário interaja com a aplicação, enviando comandos e visualizando o estado.
+ * Interface de Usuário para o cliente do sistema de leilões (baseado em
+ * console).
+ * Permite que o usuário interaja com a aplicação, enviando comandos e
+ * visualizando o estado.
  */
 public class ClientUI {
     private AuctionClient client;
@@ -34,10 +36,12 @@ public class ClientUI {
     }
 
     /**
-     * Inicia o loop principal da interface de usuário, aguardando comandos do usuário.
+     * Inicia o loop principal da interface de usuário, aguardando comandos do
+     * usuário.
      */
     public void start() {
-        // // Agendar uma atualização periódica da UI para exibir leilões e usuários online
+        // // Agendar uma atualização periódica da UI para exibir leilões e usuários
+        // online
         // uiScheduler.scheduleAtFixedRate(this::refreshUI, 0, 5, TimeUnit.SECONDS);
 
         displayLoginPrompt();
@@ -73,7 +77,8 @@ public class ClientUI {
         System.out.println("Após o login, você pode usar os seguintes comandos:");
         System.out.println("lsauctions                  - Lista todos os leilões ativos e encerrados.");
         System.out.println("bid <auction_id> <valor>     - Dá um lance em um leilão específico.");
-        System.out.println("createauction '<nome>' '<descricao>' <lance_inicial> <duracao_segundos> - Cria um novo leilão.");
+        System.out.println(
+                "createauction '<nome>' '<descricao>' <lance_inicial> <duracao_segundos> - Cria um novo leilão.");
         System.out.println("lsonline                    - Lista todos os usuários online.");
         System.out.println("chat <user_id> <mensagem>   - Envia uma mensagem P2P direta para outro usuário.");
         System.out.println("help                        - Exibe a lista de comandos.");
@@ -83,6 +88,7 @@ public class ClientUI {
 
     /**
      * Lida com a entrada do usuário antes do login.
+     * 
      * @param input A linha de comando do usuário.
      */
     private void handleLoginInput(String input) {
@@ -106,6 +112,7 @@ public class ClientUI {
 
     /**
      * Lida com a entrada do usuário após o login.
+     * 
      * @param input A linha de comando do usuário.
      */
     private void handleLoggedInInput(String input) {
@@ -128,10 +135,10 @@ public class ClientUI {
                 }
                 try {
                     String auctionId = bidArgs[0];
-                    double bidAmount = Double.parseDouble(bidArgs[1]);
+                    double bidAmount = parseBidAmount(bidArgs[1]);
                     client.placeBid(auctionId, bidAmount);
                 } catch (NumberFormatException e) {
-                    displayError("Valor do lance deve ser um número válido.");
+                    displayError("Valor do lance deve ser um número válido: " + e.getMessage());
                 }
                 break;
             case "createauction":
@@ -154,18 +161,19 @@ public class ClientUI {
                 }
 
                 if (parsedArgs.size() != 4) {
-                    displayError("Argumentos inválidos. Uso: createauction '<nome>' '<descricao>' <lance_inicial> <duracao_segundos>");
+                    displayError(
+                            "Argumentos inválidos. Uso: createauction '<nome>' '<descricao>' <lance_inicial> <duracao_segundos>");
                     return;
                 }
 
                 try {
                     String itemName = parsedArgs.get(0);
                     String itemDescription = parsedArgs.get(1);
-                    double startBid = Double.parseDouble(parsedArgs.get(2));
-                    int durationSeconds = Integer.parseInt(parsedArgs.get(3));
+                    double startBid = parseBidAmount(parsedArgs.get(2));
+                    int durationSeconds = parseAuctionDuration(parsedArgs.get(3));
                     client.createAuction(itemName, itemDescription, startBid, durationSeconds);
                 } catch (NumberFormatException e) {
-                    displayError("Lance inicial e duração devem ser números válidos.");
+                    displayError("Lance inicial e duração devem ser números válidos: " + e.getMessage());
                 }
                 break;
             case "lsonline":
@@ -195,44 +203,45 @@ public class ClientUI {
         }
     }
 
-     /**
+    /**
      * Exibe o estado atual da aplicação (leilões ativos e usuários online).
      */
     public synchronized void displayCurrentState() {
         System.out.println("\n--- LEILÕES ATIVOS ---");
-        java.util.concurrent.atomic.AtomicBoolean haveActiveAuctions = new java.util.concurrent.atomic.AtomicBoolean(false);
+        java.util.concurrent.atomic.AtomicBoolean haveActiveAuctions = new java.util.concurrent.atomic.AtomicBoolean(
+                false);
 
         if (client.getActiveAuctions().isEmpty()) {
             System.out.println("Nenhum leilão ativo no momento.");
         } else {
             // Ordenar por tempo restante para melhor visualização
             client.getActiveAuctions().stream()
-                .sorted(Comparator.comparingLong(AuctionItem::getEndTimeMillis))
-                .forEach(item -> {
-                    long endTimeMillis = item.getEndTimeMillis();
-                    java.time.Instant endInstant = java.time.Instant.ofEpochMilli(endTimeMillis);
-                    java.time.ZonedDateTime endDateTime = endInstant.atZone(java.time.ZoneId.systemDefault());
-                    String formattedEndTime = endDateTime.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss.SSS"));
+                    .sorted(Comparator.comparingLong(AuctionItem::getEndTimeMillis))
+                    .forEach(item -> {
+                        long endTimeMillis = item.getEndTimeMillis();
+                        java.time.Instant endInstant = java.time.Instant.ofEpochMilli(endTimeMillis);
+                        java.time.ZonedDateTime endDateTime = endInstant.atZone(java.time.ZoneId.systemDefault());
+                        String formattedEndTime = endDateTime
+                                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss.SSS"));
 
-                    if (System.currentTimeMillis() < endTimeMillis) {
-                        haveActiveAuctions.set(true);
-                        System.out.printf("ID: %s | Item: %-20s | Lance Atual: %.2f (por %s) | Vendedor: %s | Expira em: %s%n",
-                            item.getId(),
-                            item.getName(),
-                            item.getCurrentBid(),
-                            item.getHighestBidderUsername() != null ? item.getHighestBidderUsername() : "N/A",
-                            item.getSellerUsername(),
-                            formattedEndTime
-                        );
-                    } else {
-                        recentlyDiscontinuedAuctions.add(item);
-                    }
-                });
+                        if (System.currentTimeMillis() < endTimeMillis) {
+                            haveActiveAuctions.set(true);
+                            System.out.printf(
+                                    "ID: %s | Item: %-20s | Lance Atual: %.2f (por %s) | Vendedor: %s | Expira em: %s%n",
+                                    item.getId(),
+                                    item.getName(),
+                                    item.getCurrentBid(),
+                                    item.getHighestBidderUsername() != null ? item.getHighestBidderUsername() : "N/A",
+                                    item.getSellerUsername(),
+                                    formattedEndTime);
+                        } else {
+                            recentlyDiscontinuedAuctions.add(item);
+                        }
+                    });
             if (!haveActiveAuctions.get()) {
                 System.out.println("Nenhum leilão ativo no momento.");
             }
         }
-
 
         System.out.println("---------------------------------------------------");
         System.out.println("--- LEILÕES ENCERRADOS ---");
@@ -242,53 +251,52 @@ public class ClientUI {
             // Exibe leilões que foram recentemente descontinuados
             for (AuctionItem item : recentlyDiscontinuedAuctions) {
                 System.out.printf("ID: %s | Item: %-20s | ENCERRADO | Lance Final: %.2f (por %s) | Vendedor: %s%n",
-                    item.getId(),
-                    item.getName(),
-                    item.getCurrentBid(),
-                    item.getHighestBidderUsername() != null ? item.getHighestBidderUsername() : "N/A",
-                    item.getSellerUsername()
-                );
-            }
-            recentlyDiscontinuedAuctions.clear(); // Limpa a lista após exibir
-            client.getDiscontinuedAuctions().stream()
-                .sorted(Comparator.comparingLong(AuctionItem::getEndTimeMillis))
-                .forEach(item -> {
-                    System.out.printf("ID: %s | Item: %-20s | ENCERRADO | Lance Final: %.2f (por %s) | Vendedor: %s%n",
                         item.getId(),
                         item.getName(),
                         item.getCurrentBid(),
                         item.getHighestBidderUsername() != null ? item.getHighestBidderUsername() : "N/A",
-                        item.getSellerUsername()
-                    );
-                });
+                        item.getSellerUsername());
             }
+            recentlyDiscontinuedAuctions.clear(); // Limpa a lista após exibir
+            client.getDiscontinuedAuctions().stream()
+                    .sorted(Comparator.comparingLong(AuctionItem::getEndTimeMillis))
+                    .forEach(item -> {
+                        System.out.printf(
+                                "ID: %s | Item: %-20s | ENCERRADO | Lance Final: %.2f (por %s) | Vendedor: %s%n",
+                                item.getId(),
+                                item.getName(),
+                                item.getCurrentBid(),
+                                item.getHighestBidderUsername() != null ? item.getHighestBidderUsername() : "N/A",
+                                item.getSellerUsername());
+                    });
+        }
         System.out.println("---------------------------------------------------");
         System.out.print("> ");
     }
 
-public synchronized void listClients() {
-    System.out.println("\n--- USUÁRIOS ONLINE ---");
+    public synchronized void listClients() {
+        System.out.println("\n--- USUÁRIOS ONLINE ---");
 
-    // Filtra todos os usuários menos o próprio
-    var otherUsers = client.getActiveUsers().values().stream()
-        .filter(user -> !user.getUserId().equals(client.getUserId()))
-        .sorted(Comparator.comparing(UserInfo::getUsername))
-        .toList(); // Cria uma lista imutável com os outros usuários
+        // Filtra todos os usuários menos o próprio
+        var otherUsers = client.getActiveUsers().values().stream()
+                .filter(user -> !user.getUserId().equals(client.getUserId()))
+                .sorted(Comparator.comparing(UserInfo::getUsername))
+                .toList(); // Cria uma lista imutável com os outros usuários
 
-    if (otherUsers.isEmpty()) {
-        System.out.println("Nenhum outro usuário online.");
-    } else {
-        otherUsers.forEach(user -> 
-            System.out.println("ID: " + user.getUserId() + " | Nome: " + user.getUsername())
-        );
+        if (otherUsers.isEmpty()) {
+            System.out.println("Nenhum outro usuário online.");
+        } else {
+            otherUsers
+                    .forEach(user -> System.out.println("ID: " + user.getUserId() + " | Nome: " + user.getUsername()));
+        }
+
+        System.out.println("---------------------------------------------------");
+        System.out.print("> "); // Reimprime o prompt
     }
-
-    System.out.println("---------------------------------------------------");
-    System.out.print("> "); // Reimprime o prompt
-}
 
     /**
      * Exibe uma mensagem geral para o usuário.
+     * 
      * @param message A mensagem a ser exibida.
      */
     public synchronized void displayMessage(String message) {
@@ -300,6 +308,7 @@ public synchronized void listClients() {
 
     /**
      * Exibe uma mensagem de erro para o usuário.
+     * 
      * @param error A mensagem de erro a ser exibida.
      */
     public synchronized void displayError(String error) {
@@ -310,7 +319,9 @@ public synchronized void listClients() {
     }
 
     /**
-     * Define o status de login da UI. Chamado pelo AuctionClient após resposta do servidor.
+     * Define o status de login da UI. Chamado pelo AuctionClient após resposta do
+     * servidor.
+     * 
      * @param loggedIn True se o login foi bem-sucedido, false caso contrário.
      */
     public void setLoggedIn(boolean loggedIn) {
@@ -320,11 +331,59 @@ public synchronized void listClients() {
     /**
      * Exibe a lista de comandos disponíveis para o usuário.
      */
+    /**
+     * Faz o parsing de uma string para um valor de lance em formato double.
+     * Tenta converter diferentes formatos de número para o formato adequado.
+     * 
+     * @param value A string contendo o valor do lance
+     * @return O valor do lance como double
+     * @throws NumberFormatException se não for possível converter para um número
+     *                               válido
+     */
+    private double parseBidAmount(String value) throws NumberFormatException {
+        // Remove espaços e substitui vírgula por ponto (caso o usuário use vírgula)
+        String cleanValue = value.trim().replace(",", ".");
+
+        try {
+            double amount = Double.parseDouble(cleanValue);
+            // Garante que o valor tem exatamente 2 casas decimais
+            return Math.round(amount * 100.0) / 100.0;
+        } catch (NumberFormatException e) {
+            throw new NumberFormatException(
+                    "Formato inválido para valor monetário. Use números com até duas casas decimais.");
+        }
+    }
+
+    /**
+     * Faz o parsing de uma string para um valor de duração em segundos.
+     * Tenta converter diferentes formatos de número para o formato adequado.
+     * 
+     * @param value A string contendo a duração
+     * @return A duração em segundos como int
+     * @throws NumberFormatException se não for possível converter para um número
+     *                               válido
+     */
+    private int parseAuctionDuration(String value) throws NumberFormatException {
+        // Remove espaços e qualquer parte decimal (caso o usuário digite um float)
+        String cleanValue = value.trim().split("\\.")[0];
+
+        try {
+            int duration = Integer.parseInt(cleanValue);
+            if (duration <= 0) {
+                throw new NumberFormatException("A duração deve ser maior que zero.");
+            }
+            return duration;
+        } catch (NumberFormatException e) {
+            throw new NumberFormatException("A duração deve ser um número inteiro positivo em segundos.");
+        }
+    }
+
     private void displayHelp() {
         System.out.println("\n--- COMANDOS DISPONÍVEIS ---");
         System.out.println("lsauctions              - Lista todos os leilões ativos e encerrados.");
         System.out.println("bid <auction_id> <valor> - Dá um lance em um leilão específico.");
-        System.out.println("createauction '<nome>' '<descricao>' <lance_inicial> <duracao_segundos> - Cria um novo leilão.");
+        System.out.println(
+                "createauction '<nome>' '<descricao>' <lance_inicial> <duracao_segundos> - Cria um novo leilão.");
         System.out.println("lsonline                - Lista todos os usuários online.");
         System.out.println("chat <user_id> <mensagem> - Envia uma mensagem P2P direta para outro usuário.");
         System.out.println("help                    - Exibe esta ajuda.");

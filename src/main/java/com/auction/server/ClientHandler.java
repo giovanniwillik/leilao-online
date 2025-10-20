@@ -10,7 +10,8 @@ import java.net.SocketException;
 
 /**
  * Lida com a comunicação de um cliente individual no servidor de leilões.
- * Cada cliente conectado terá uma instância de ClientHandler rodando em sua própria thread.
+ * Cada cliente conectado terá uma instância de ClientHandler rodando em sua
+ * própria thread.
  */
 public class ClientHandler implements Runnable {
 
@@ -25,33 +26,52 @@ public class ClientHandler implements Runnable {
      * Construtor para o ClientHandler.
      *
      * @param socket O socket de comunicação com o cliente.
-     * @param server A instância do AuctionServer para interagir com a lógica central.
+     * @param server A instância do AuctionServer para interagir com a lógica
+     *               central.
      */
     public ClientHandler(Socket socket, AuctionServer server) {
         this.clientSocket = socket;
         this.server = server;
         try {
             // A ordem de criação dos ObjectInputStream e ObjectOutputStream é CRUCIAL!
-            // O ObjectOutputStream DEVE ser criado primeiro no servidor, e também no cliente.
-            // Se a ordem for invertida, pode ocorrer um deadlock pois ambos os lados esperariam
+            // O ObjectOutputStream DEVE ser criado primeiro no servidor, e também no
+            // cliente.
+            // Se a ordem for invertida, pode ocorrer um deadlock pois ambos os lados
+            // esperariam
             // o cabeçalho do stream do outro para continuar.
             this.out = new ObjectOutputStream(clientSocket.getOutputStream());
             this.in = new ObjectInputStream(clientSocket.getInputStream());
         } catch (IOException e) {
-            System.err.println("Erro ao criar streams para o cliente " + clientSocket.getInetAddress() + ": " + e.getMessage());
+            System.err.println(
+                    "Erro ao criar streams para o cliente " + clientSocket.getInetAddress() + ": " + e.getMessage());
             closeConnection();
         }
     }
 
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-    public Socket getClientSocket() { return clientSocket; } // Permite ao servidor obter IP do cliente
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public Socket getClientSocket() {
+        return clientSocket;
+    } // Permite ao servidor obter IP do cliente
 
     /**
      * O método run() contém a lógica principal da thread do ClientHandler.
-     * Ele lê mensagens do cliente e as encaminha para o AuctionServer para processamento.
+     * Ele lê mensagens do cliente e as encaminha para o AuctionServer para
+     * processamento.
      */
     @Override
     public void run() {
@@ -64,10 +84,12 @@ public class ClientHandler implements Runnable {
                 this.setUserId(loginMsg.getSenderId());
                 this.setUsername(loginMsg.getUsername());
                 server.addClient(userId, this, clientSocket.getInetAddress().getHostAddress(), loginMsg.getP2pPort());
-                // Passa a mensagem de login para o servidor lidar, incluindo o registro do cliente
+                // Passa a mensagem de login para o servidor lidar, incluindo o registro do
+                // cliente
                 server.handleMessage(loginMsg, this);
             } else {
-                System.out.println("Cliente " + clientSocket.getInetAddress() + " enviou " + firstMessage.getType() + " antes de LOGIN. Fechando conexão.");
+                System.out.println("Cliente " + clientSocket.getInetAddress() + " enviou " + firstMessage.getType()
+                        + " antes de LOGIN. Fechando conexão.");
                 // Envia uma resposta de falha e fecha a conexão
                 sendMessage(new LoginResponseMessage("server", false, "Por favor, faça login primeiro.", null, null));
                 return; // Encerra a thread sem entrar no loop de leitura
@@ -82,13 +104,16 @@ public class ClientHandler implements Runnable {
 
         } catch (EOFException e) {
             // Cliente fechou a conexão de forma limpa
-            System.out.println("Cliente " + (userId != null ? userId : clientSocket.getInetAddress()) + " desconectou.");
+            System.out
+                    .println("Cliente " + (userId != null ? userId : clientSocket.getInetAddress()) + " desconectou.");
         } catch (SocketException e) {
             // Conexão perdida (e.g., cliente desligou, rede caiu)
-            System.out.println("Conexão perdida com o cliente " + (userId != null ? userId : clientSocket.getInetAddress()) + ": " + e.getMessage());
+            System.out.println("Conexão perdida com o cliente "
+                    + (userId != null ? userId : clientSocket.getInetAddress()) + ": " + e.getMessage());
         } catch (IOException | ClassNotFoundException e) {
             // Outros erros de I/O ou desserialização
-            System.err.println("Erro na comunicação com o cliente " + (userId != null ? userId : clientSocket.getInetAddress()) + ": " + e.getMessage());
+            System.err.println("Erro na comunicação com o cliente "
+                    + (userId != null ? userId : clientSocket.getInetAddress()) + ": " + e.getMessage());
         } finally {
             closeConnection(); // Garante que os recursos sejam liberados
         }
@@ -101,11 +126,14 @@ public class ClientHandler implements Runnable {
      */
     public void sendMessage(Message message) {
         try {
+            // Reset the stream to clear the object cache so subsequent
+            // writes of the same object will be fully serialized again.
             out.reset();
             out.writeObject(message);
             out.flush(); // Garante que a mensagem seja enviada imediatamente
         } catch (IOException e) {
-            System.err.println("Erro ao enviar mensagem para o cliente " + (userId != null ? userId : clientSocket.getInetAddress()) + ": " + e.getMessage());
+            System.err.println("Erro ao enviar mensagem para o cliente "
+                    + (userId != null ? userId : clientSocket.getInetAddress()) + ": " + e.getMessage());
             closeConnection(); // A conexão pode ter caído, então tenta fechá-la.
         }
     }
@@ -118,12 +146,17 @@ public class ClientHandler implements Runnable {
             if (userId != null) {
                 server.removeClient(userId); // Notifica o servidor que este cliente se desconectou
             }
-            if (in != null) in.close();
-            if (out != null) out.close();
-            if (clientSocket != null) clientSocket.close();
-            System.out.println("Conexão com cliente " + (userId != null ? userId : clientSocket.getInetAddress()) + " fechada.");
+            if (in != null)
+                in.close();
+            if (out != null)
+                out.close();
+            if (clientSocket != null)
+                clientSocket.close();
+            System.out.println(
+                    "Conexão com cliente " + (userId != null ? userId : clientSocket.getInetAddress()) + " fechada.");
         } catch (IOException e) {
-            System.err.println("Erro ao fechar recursos do cliente " + (userId != null ? userId : clientSocket.getInetAddress()) + ": " + e.getMessage());
+            System.err.println("Erro ao fechar recursos do cliente "
+                    + (userId != null ? userId : clientSocket.getInetAddress()) + ": " + e.getMessage());
         }
     }
 }
