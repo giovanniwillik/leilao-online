@@ -83,7 +83,12 @@ public class ClientHandler implements Runnable {
                 // Configura o ID e username do cliente neste handler
                 this.setUserId(loginMsg.getSenderId());
                 this.setUsername(loginMsg.getUsername());
-                server.addClient(userId, this, clientSocket.getInetAddress().getHostAddress(), loginMsg.getP2pPort());
+                // Prefer the IP address provided by the client in the LoginMessage if present.
+                String reportedIp = loginMsg instanceof com.auction.common.LoginMessage
+                        && ((com.auction.common.LoginMessage) loginMsg).getIpAddress() != null
+                                ? ((com.auction.common.LoginMessage) loginMsg).getIpAddress()
+                                : clientSocket.getInetAddress().getHostAddress();
+                server.addClient(userId, this, reportedIp, loginMsg.getP2pPort());
                 // Passa a mensagem de login para o servidor lidar, incluindo o registro do
                 // cliente
                 server.handleMessage(loginMsg, this);

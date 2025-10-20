@@ -167,7 +167,17 @@ public class AuctionClient {
      */
     public void login(String username) {
         this.username = username;
-        sendMessageToServer(new LoginMessage(userId, username, p2pPort));
+        // Determine the local IP address used for the connection to the server and
+        // include it
+        String localIp = null;
+        try {
+            if (serverConnectionSocket != null && serverConnectionSocket.getLocalAddress() != null) {
+                localIp = serverConnectionSocket.getLocalAddress().getHostAddress();
+            }
+        } catch (Exception e) {
+            // ignore and send without IP
+        }
+        sendMessageToServer(new LoginMessage(userId, username, p2pPort, localIp));
         // Agendar o envio de mensagens Keep-Alive para o servidor.
         scheduler.scheduleAtFixedRate(() -> sendMessageToServer(new KeepAliveMessage(userId)),
                 Constants.KEEP_ALIVE_INTERVAL_MS,
