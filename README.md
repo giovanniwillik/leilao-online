@@ -24,9 +24,14 @@
   - [⚙️ Compilação e Execução](#️-compilação-e-execução)
     - [🧩 1. Usando um IDE (IntelliJ IDEA, Eclipse, etc.)](#-1-usando-um-ide-intellij-idea-eclipse-etc)
     - [💻 2. Via Linha de Comando](#-2-via-linha-de-comando)
-      - [🔧 Compilar o Projeto](#-compilar-o-projeto)
-      - [🚀 Executar o Servidor](#-executar-o-servidor)
-      - [👥 Executar Múltiplos Clientes](#-executar-múltiplos-clientes)
+      - [Compilar o Projeto](#compilar-o-projeto)
+      - [Executar o Servidor](#executar-o-servidor)
+      - [Executar Múltiplos Clientes](#executar-múltiplos-clientes)
+    - [📦 3. Usando os Executáveis JAR](#-3-usando-os-executáveis-jar)
+      - [Executáveis Disponíveis](#executáveis-disponíveis)
+      - [Executando o Servidor](#executando-o-servidor)
+      - [Executando o Cliente](#executando-o-cliente)
+      - [Observações Importantes](#observações-importantes)
     - [💬 Comandos Disponíveis no Cliente](#-comandos-disponíveis-no-cliente)
 
 ---
@@ -162,13 +167,13 @@ Depois, basta rodar a classe principal:
 
 No diretório raiz do projeto, execute os seguintes comandos:
 
-#### 🔧 Compilar o Projeto
+#### Compilar o Projeto
 
 ```bash
 javac -d out src/main/java/com/auction/common/*.java src/main/java/com/auction/server/*.java src/main/java/com/auction/client/*.java
 ```
 
-#### 🚀 Executar o Servidor
+#### Executar o Servidor
 
 ```bash
 java -cp out com.auction.server.AuctionServer
@@ -178,7 +183,7 @@ java -cp out com.auction.server.AuctionServer
 
 ---
 
-#### 👥 Executar Múltiplos Clientes
+#### Executar Múltiplos Clientes
 
 Para rodar na mesma máquina que o servidor (localmente), abra quantos terminais quiser (ou consoles no IDE) e execute em cada um:
 
@@ -197,6 +202,43 @@ Cada cliente solicitará um **nome de usuário** para login.
 ```
 
 Vale ressaltar que a conexão via TCP é feita pelo IP privado da máquina, funcionando, portanto, apenas se as máquinas do servidor e clientes estiverem na mesma rede local (LAN). Para que sua aplicação funcione pela internet (WAN), você precisaria de redirecionamento de porta (port forwarding) no roteador da máquina onde o servidor e os clientes P2P estão localizados.
+
+---
+
+### 📦 3. Usando os Executáveis JAR
+
+O projeto também disponibiliza arquivos JAR executáveis para facilitar a distribuição e execução.
+
+#### Executáveis Disponíveis
+
+- `auction-server.jar`: Servidor do leilão
+- `auction-client.jar`: Cliente do leilão
+
+#### Executando o Servidor
+
+```bash
+java -jar auction-server.jar
+```
+
+#### Executando o Cliente
+
+Para rodar na mesma máquina que o servidor (localmente):
+
+```bash
+java -jar auction-client.jar
+```
+
+Para rodar em uma máquina diferente da do servidor:
+
+```bash
+java -jar auction-client.jar <IP_DO_SERVIDOR>
+```
+
+#### Observações Importantes
+
+- O servidor deve ser iniciado primeiro
+- Os executáveis JAR podem ser distribuídos e executados em qualquer máquina que tenha o Java instalado
+- As mesmas limitações de rede (LAN/WAN) mencionadas anteriormente se aplicam aos executáveis JAR
 
 ---
 
